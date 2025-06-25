@@ -160,8 +160,7 @@ def get_frequencies(lst_ids, df_phecode):
     return frequencies of phecodes in a data series
     '''
     df_subset = df_phecode[df_phecode.loc[:, 'grid'].isin(lst_ids)]
-    # return df_subset.iloc[:, :-1].sum()/len(df_subset) # Skip the last column (ID column)
-    return df_subset.iloc[:, :-1].sum() # return counts
+    return df_subset.iloc[:, :-1].sum(), df_subset.iloc[:, :-1].sum()/len(df_subset) # Return counts and frequency, Skip the last column (ID column)
 
 def main():
     args = process_args()
@@ -179,26 +178,27 @@ def main():
     logging.info('# - %s sample x %s phecodes' % (df_phecode.shape[0], df_phecode.shape[1]-1))
 
     logging.info('\n# Calcualte frequency of each phecode in cases')
-    df_case_freq = get_frequencies(lst_case, df_phecode)
+    df_case_count, _ = get_frequencies(lst_case, df_phecode)
 
     logging.info('\n# Calcualte frequency of each phecode in controls with permutation')
-    lst_control_freq = [] # Store frequencies of controls
+    lst_control_count = [] # Store counts of controls
     rng = np.random.default_rng(seed=2024)
     for i in range(args.n_permute):
-        lst_control_freq.append(get_frequencies(get_lst_controls(lst_case, dict_control, rng), df_phecode))
+        lst_control_count, _ = get_frequencies(get_lst_controls(lst_case, dict_control, rng), df_phecode)
+        lst_control_count.append(lst_control_count)
         if i%10==0: print(f'\r - Permutation {i+1}   ', end='', flush=True)
     print(f'\r - Permutation {i+1}   ', end='\n')
-    df_all_freq = pd.concat([df_case_freq]+lst_control_freq, axis=1).reset_index()
-    df_all_freq.columns = ['phecode', 'case_freq'] + [f'control_freq_{x+1}' for x in range(args.n_permute)]
+    df_all_count = pd.concat([df_case_count]+lst_control_count, axis=1).reset_index()
+    df_all_count.columns = ['phecode', 'case_count'] + [f'control_count_{x+1}' for x in range(args.n_permute)]
     
     logging.info('\n# Calcualte p values')
-    df_pvals = df_all_freq.iloc[:, 2:].ge(df_all_freq['case_freq'], axis=0).sum(axis=1)/args.n_permute
-    df_all = pd.concat([df_all_freq, df_pvals], axis=1).rename(columns={0:'pval'})
+    df_pvals = df_all_count.iloc[:, 2:].ge(df_all_count['case_count'], axis=0).sum(axis=1)/args.n_permute
+    df_all = pd.concat([df_all_count, df_pvals], axis=1).rename(columns={0:'pval'})
     # Reorder columns
-    new_cols = ['phecode', 'pval', 'case_freq'] + [f'control_freq_{x+1}' for x in range(args.n_permute)]
+    new_cols = ['phecode', 'pval', 'case_count'] + [f'control_count_{x+1}' for x in range(args.n_permute)]
 
     # Save permutation and pvalues to file
-    output_fn = f"{os.path.join(args.output_path, args.output_prefix+'.frequencies_and_pval.txt')}"
+    output_fn = f"{os.path.join(args.output_path, args.output_prefix+'.counts_and_pval.txt')}"
     df_all[new_cols].to_csv(output_fn, index=False, sep='\t')
 
     time_elapsed = time.time() - start_time

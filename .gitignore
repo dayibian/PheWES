@@ -43,4 +43,6 @@ Thumbs.db
 results/*
 !results/.gitkeep
 data/*
-!data/.gitkeep 
+!data/.gitkeep
+# Explicitly include the data_paths.yaml file
+!data/data_paths.yaml 

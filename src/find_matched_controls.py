@@ -1,3 +1,14 @@
+# This script is used to find matched controls for each case
+# It is used to find the best, non-repeated N controls for each case.
+# Note this script doesn't use any genetic information for matching.
+# The matching criteria are:
+# - Sex: Exact match
+# - Race: Exact match
+# - Ethnicity: Exact match
+# - Age: Within +/- 5 years
+# - Visit count: Within +/- 5 visits
+
+
 import argparse
 import logging
 import random
@@ -41,12 +52,12 @@ def process_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument('--icd_count', help='Number of ICD code needed to count as case', type=int, default=1)
     parser.add_argument('--result_path', help='Path to save the results', type=str, default='../results')
-    parser.add_argument('--filename', help='Name of the result file', type=str, default='case_control_pairs')
+    parser.add_argument('--result_filename', help='Name of the result file', type=str, default='case_control_pairs')
 
     args = parser.parse_args()
 
     # Record arguments used
-    fn_log = Path(f'{args.result_path}/get_controls_count_{args.icd_count}.log')
+    fn_log = Path(f'{args.result_path}/get_matched_controls.log')
     setup_log(fn_log, mode='w')
 
     # Record script used
@@ -70,7 +81,7 @@ def import_data(icd_count: int = 1, case_path: Path = CASE_PATH, sd_demo_path: P
     Import and preprocess case and control data for matching.
     
     Args:
-        icd_count: Minimum number of ICD codes required to classify as a case
+        icd_count: Minimum number of ICD codes required to classify as a case. If icd_count=0, all cases will be included.
         case_path: Path to case data file
         sd_demo_path: Path to synthetic derivative demographics file
         depth_of_record_path: Path to depth of record data
@@ -82,7 +93,8 @@ def import_data(icd_count: int = 1, case_path: Path = CASE_PATH, sd_demo_path: P
     """
     # Read case data and filter by ICD code count threshold
     case_df = pd.read_csv(case_path)
-    case_df = case_df[case_df.count_hpp_icd_code>=icd_count]
+    if icd_count > 0:
+        case_df = case_df[case_df.count_hpp_icd_code>=icd_count]
     
     # Read demographic and depth of record data
     sd_demo_df = pd.read_csv(sd_demo_path)
@@ -144,106 +156,106 @@ def find_match_controls(case_of_interest: str, cases_df: pd.DataFrame, controls_
     return controls_matched, controls_df[mask]
 
 
-def find_exclusive_matches(cases_df: pd.DataFrame, controls_df: pd.DataFrame, n_matches_per_case: int = 10) -> dict[str, list[str]]:
-    """
-    Finds the best, non-repeated N controls for each case. (Corrected Version)
+# def find_exclusive_matches(cases_df: pd.DataFrame, controls_df: pd.DataFrame, n_matches_per_case: int = 10) -> dict[str, list[str]]:
+#     """
+#     Finds the best, non-repeated N controls for each case.
 
-    This function implements a "best fit" greedy algorithm:
-    1. Finds all possible case-control pairs based on exact and range criteria.
-    2. Scores each pair based on age difference (smaller is better).
-    3. Iterates through pairs from best to worst score, assigning unique controls
-       to cases until each case has its desired number of matches.
-    """
-    # 1. Prepare for merge
-    exact_match_cols = ['gender_source_value', 'race_source_value', 'ethnicity_source_value']
+#     This function implements a "best fit" greedy algorithm:
+#     1. Finds all possible case-control pairs based on exact and range criteria.
+#     2. Scores each pair based on age difference (smaller is better).
+#     3. Iterates through pairs from best to worst score, assigning unique controls
+#        to cases until each case has its desired number of matches.
+#     """
+#     # 1. Prepare for merge
+#     exact_match_cols = ['gender_source_value', 'race_source_value', 'ethnicity_source_value']
     
-    # Add a suffix to case columns to distinguish them after the merge.
-    cases_renamed = cases_df.add_suffix('_case')
-    # Create the list of renamed key columns for the left DataFrame.
-    left_on_cols = [col + '_case' for col in exact_match_cols]
+#     # Add a suffix to case columns to distinguish them after the merge.
+#     cases_renamed = cases_df.add_suffix('_case')
+#     # Create the list of renamed key columns for the left DataFrame.
+#     left_on_cols = [col + '_case' for col in exact_match_cols]
 
-    # CORRECTED: Use left_on and right_on for different key column names.
-    merged_df = pd.merge(
-        cases_renamed,
-        controls_df,
-        left_on=left_on_cols,
-        right_on=exact_match_cols,
-        how='inner'
-    )
+#     # CORRECTED: Use left_on and right_on for different key column names.
+#     merged_df = pd.merge(
+#         cases_renamed,
+#         controls_df,
+#         left_on=left_on_cols,
+#         right_on=exact_match_cols,
+#         how='inner'
+#     )
 
-    # 2. Apply the range-based filters (this part remains the same)
-    age_tolerance_days = 365.25 * 5
-    visit_tolerance = 5
-    mask = (
-        (merged_df['age_in_days'] < merged_df['age_in_days_case'] + age_tolerance_days) &
-        (merged_df['age_in_days'] > merged_df['age_in_days_case'] - age_tolerance_days) &
-        (merged_df['depth_of_record'] < merged_df['depth_of_record_case'] + visit_tolerance) &
-        (merged_df['depth_of_record'] > merged_df['depth_of_record_case'] - visit_tolerance)
-    )
-    potential_matches = merged_df[mask].copy()
+#     # 2. Apply the range-based filters (this part remains the same)
+#     age_tolerance_days = 365.25 * 5
+#     visit_tolerance = 5
+#     mask = (
+#         (merged_df['age_in_days'] < merged_df['age_in_days_case'] + age_tolerance_days) &
+#         (merged_df['age_in_days'] > merged_df['age_in_days_case'] - age_tolerance_days) &
+#         (merged_df['depth_of_record'] < merged_df['depth_of_record_case'] + visit_tolerance) &
+#         (merged_df['depth_of_record'] > merged_df['depth_of_record_case'] - visit_tolerance)
+#     )
+#     potential_matches = merged_df[mask].copy()
 
-    # 3. Calculate match quality score and sort (this part remains the same)
-    potential_matches['match_score'] = abs(
-        potential_matches['age_in_days_case'] - potential_matches['age_in_days']
-    )
-    potential_matches = potential_matches.sort_values('match_score', ascending=True)
+#     # 3. Calculate match quality score and sort (this part remains the same)
+#     potential_matches['match_score'] = abs(
+#         potential_matches['age_in_days_case'] - potential_matches['age_in_days']
+#     )
+#     potential_matches = potential_matches.sort_values('match_score', ascending=True)
 
-    # 4. Iteratively assign unique controls to cases (this part remains the same)
-    used_controls = set()
-    final_matches = {case_id: [] for case_id in cases_df['grid']}
+#     # 4. Iteratively assign unique controls to cases (this part remains the same)
+#     used_controls = set()
+#     final_matches = {case_id: [] for case_id in cases_df['grid']}
     
-    for _, row in potential_matches.iterrows():
-        case_id = row['grid_case']
-        control_id = row['grid']
+#     for _, row in potential_matches.iterrows():
+#         case_id = row['grid_case']
+#         control_id = row['grid']
 
-        if len(final_matches.get(case_id, [])) >= n_matches_per_case:
-            continue
+#         if len(final_matches.get(case_id, [])) >= n_matches_per_case:
+#             continue
 
-        if control_id in used_controls:
-            continue
+#         if control_id in used_controls:
+#             continue
             
-        final_matches[case_id].append(control_id)
-        used_controls.add(control_id)
+#         final_matches[case_id].append(control_id)
+#         used_controls.add(control_id)
 
-    return final_matches
+#     return final_matches
 
 
-def write_matches_to_file(matches_dict: dict[str, list[str]], output_path: str, n_matches: int = 10) -> None:
-    """
-    Writes the case-control matches to a tab-separated text file.
+# def write_matches_to_file(matches_dict: dict[str, list[str]], output_path: str, n_matches: int = 10) -> None:
+#     """
+#     Writes the case-control matches to a tab-separated text file.
 
-    Args:
-        matches_dict (dict): A dictionary where keys are case IDs and
-                             values are lists of matched control IDs.
-        output_path (str): The path to the output .txt file.
-        n_matches (int): The maximum number of controls per case, used
-                         to generate the header and pad rows.
-    """
-    # 1. Create the header string
-    header_cols = ['case'] + [f'control{i+1}' for i in range(n_matches)]
-    header = '\t'.join(header_cols)
+#     Args:
+#         matches_dict (dict): A dictionary where keys are case IDs and
+#                              values are lists of matched control IDs.
+#         output_path (str): The path to the output .txt file.
+#         n_matches (int): The maximum number of controls per case, used
+#                          to generate the header and pad rows.
+#     """
+#     # 1. Create the header string
+#     header_cols = ['case'] + [f'control{i+1}' for i in range(n_matches)]
+#     header = '\t'.join(header_cols)
 
-    # 2. Open the file and write the content
-    with open(output_path, 'w') as f:
-        # Write the header first
-        f.write(header + '\n')
+#     # 2. Open the file and write the content
+#     with open(output_path, 'w') as f:
+#         # Write the header first
+#         f.write(header + '\n')
 
-        # Iterate through each case and its matched controls
-        for case_id, controls_list in matches_dict.items():
-            # Start the row with the case ID
-            row_data = [str(case_id)]
+#         # Iterate through each case and its matched controls
+#         for case_id, controls_list in matches_dict.items():
+#             # Start the row with the case ID
+#             row_data = [str(case_id)]
 
-            # Add the controls to the row data
-            row_data.extend(map(str, controls_list))
+#             # Add the controls to the row data
+#             row_data.extend(map(str, controls_list))
 
-            # Pad the row with empty strings if it has fewer than n_matches
-            padding = [''] * (n_matches - len(controls_list))
-            row_data.extend(padding)
+#             # Pad the row with empty strings if it has fewer than n_matches
+#             padding = [''] * (n_matches - len(controls_list))
+#             row_data.extend(padding)
 
-            # Join all parts of the row with a tab and write to the file
-            f.write('\t'.join(row_data) + '\n')
+#             # Join all parts of the row with a tab and write to the file
+#             f.write('\t'.join(row_data) + '\n')
             
-    logging.info(f"Successfully wrote matches to {output_path}")
+#     logging.info(f"Successfully wrote matches to {output_path}")
 
 
 def main():
@@ -256,7 +268,7 @@ def main():
     """
     args = process_args()
     start_time = time.time()
-    result_fp = Path(args.result_path) / (args.filename + '_' + str(args.icd_count) + '.txt')
+    result_fp = Path(args.result_path) / (args.result_filename + '.txt')
 
     logging.info('Importing data...\n')
     cases_df, controls_df = import_data(args.icd_count)

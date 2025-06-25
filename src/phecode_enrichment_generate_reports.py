@@ -1,3 +1,6 @@
+# This script is used to generate reports for the enrichment analysis results
+# It will generate a table of enriched phecodes with statistics
+
 import pandas as pd
 from tqdm import tqdm
 import logging
@@ -9,7 +12,7 @@ import numpy as np
 import warnings
 warnings.filterwarnings('ignore')
 
-def setup_log(fn_log, mode='a'):
+def setup_log(fn_log, mode='w'):
     '''
     Print log message to console and write to a log file.
     Will overwrite existing log file by default
@@ -64,9 +67,9 @@ def main():
     prefix = args.input_prefix
 
     logging.info('\nReading enrichment analysis results...')
-    results = pd.read_csv(output_path / f'{prefix}.frequencies_and_pval.txt', sep='\t', dtype={'phecode':str})
+    results = pd.read_csv(output_path / f'{prefix}.counts_and_pval.txt', sep='\t', dtype={'phecode':str})
     results_sig = results[results.pval<1e-5]
-    logging.info(f'The number of enriched phecode is: {results_sig.shape[0]}')
+    logging.info(f'The number of enriched phecode is: {results_sig.shape[0]} (out of {results.shape[0]})')
 
     logging.info('Reading phecode map...')
     phecode_map = pd.read_csv(data_path / 'Phecode_map12_filtered.csv', dtype={'Phecode':str})
@@ -96,28 +99,15 @@ def main():
     logging.info('Generating statistics for enrichment analysis...')
     for i in tqdm(range(len(results_sig))):
         control_count = pd.to_numeric(results_sig.iloc[i, 3:-1]).to_list()
-        case_count = results_sig.loc[i, 'case_freq']
-        code, pval, desc = results_sig.loc[i, 'phecode'], results_sig.loc[i, 'pval'], results_sig.loc[i, 'PhecodeString']
+        row = results_sig.iloc[i]
+        case_count = row['case_count']
+        code, pval, desc = row['phecode'], row['pval'], row['PhecodeString']
+        
+        percentiles = [1, 5, 10, 50, 90, 95, 99]
+        stats = [int(np.percentile(control_count, p)) for p in percentiles]
         max_count = int(max(control_count))
-        p01 = np.percentile(control_count, 1)
-        p05 = np.percentile(control_count, 5)
-        p10 = np.percentile(control_count, 10)
-        p50 = np.percentile(control_count, 50)
-        p90 = np.percentile(control_count, 90)
-        p95 = np.percentile(control_count, 95)
-        p99 = np.percentile(control_count, 99)
-        enriched_phecode.loc[i, 'Phecode'] = code
-        enriched_phecode.loc[i, 'Description'] = desc
-        enriched_phecode.loc[i, 'Count'] = int(case_count)
-        enriched_phecode.loc[i, 'p.value'] = pval
-        enriched_phecode.loc[i, 'p01'] = int(p01)
-        enriched_phecode.loc[i, 'p05'] = int(p05)
-        enriched_phecode.loc[i, 'p10'] = int(p10)
-        enriched_phecode.loc[i, 'p50'] = int(p50)
-        enriched_phecode.loc[i, 'p90'] = int(p90)
-        enriched_phecode.loc[i, 'p95'] = int(p95)
-        enriched_phecode.loc[i, 'p99'] = int(p99)
-        enriched_phecode.loc[i, 'max'] = max_count
+        
+        enriched_phecode.loc[i] = [code, desc, int(case_count), pval] + stats + [max_count]
         if max_count > 0:
             enriched_phecode.loc[i, 'case_to_control_ratio'] = round(int(case_count) / max_count, 2)
         else:
