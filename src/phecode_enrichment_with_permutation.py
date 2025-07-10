@@ -20,6 +20,12 @@ import argparse
 import sys
 import logging
 import time
+import yaml
+from pathlib import Path
+
+# Load data paths
+with open('../data/data_paths.yaml', 'r') as f:
+    data_paths = yaml.safe_load(f)
 
 def setup_log(fn_log, mode='w'):
     '''
@@ -174,7 +180,7 @@ def main():
     lst_case = list(dict_control.keys()) # Update the case list, remove cases that have no matched controls
     
     logging.info('\n# Load binary phecode table')
-    df_phecode = pd.read_csv(args.phecode_table, sep=args.phecode_delimiter)
+    df_phecode = pd.read_feather(data_paths['phecode_binary_feather_file'])
     logging.info('# - %s sample x %s phecodes' % (df_phecode.shape[0], df_phecode.shape[1]-1))
 
     logging.info('\n# Calcualte frequency of each phecode in cases')

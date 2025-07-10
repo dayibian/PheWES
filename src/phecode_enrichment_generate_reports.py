@@ -8,9 +8,14 @@ from pathlib import Path
 import argparse
 import sys
 import numpy as np
+import yaml
 
 import warnings
 warnings.filterwarnings('ignore')
+
+# Load data paths
+with open('../data/data_paths.yaml', 'r') as f:
+    data_paths = yaml.safe_load(f)
 
 def setup_log(fn_log, mode='w'):
     '''
@@ -72,7 +77,7 @@ def main():
     logging.info(f'The number of enriched phecode is: {results_sig.shape[0]} (out of {results.shape[0]})')
 
     logging.info('Reading phecode map...')
-    phecode_map = pd.read_csv(data_path / 'Phecode_map12_filtered.csv', dtype={'Phecode':str})
+    phecode_map = pd.read_csv(data_paths['phecode_map_file'], dtype={'Phecode':str})
     phecode_map = phecode_map[['Phecode', 'PhecodeString']].drop_duplicates(ignore_index=True)
     phecode_map.Phecode = phecode_map.Phecode.apply(lambda x: x.strip())
     phecode_map.index = phecode_map.Phecode
@@ -106,8 +111,8 @@ def main():
         percentiles = [1, 5, 10, 50, 90, 95, 99]
         stats = [int(np.percentile(control_count, p)) for p in percentiles]
         max_count = int(max(control_count))
-        
         enriched_phecode.loc[i] = [code, desc, int(case_count), pval] + stats + [max_count]
+
         if max_count > 0:
             enriched_phecode.loc[i, 'case_to_control_ratio'] = round(int(case_count) / max_count, 2)
         else:

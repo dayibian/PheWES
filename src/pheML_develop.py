@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import joblib
 import gzip
 from tqdm import tqdm
+import yaml
 
 import logging, sys, argparse
 from pathlib import Path
@@ -23,6 +24,10 @@ from pathlib import Path
 import warnings
 warnings.filterwarnings('ignore')
 logging.getLogger('matplotlib.font_manager').disabled = True
+
+# Load data paths
+with open('../data/data_paths.yaml', 'r') as f:
+    data_paths = yaml.safe_load(f)
 
 full_name = {
     'als': 'ALS',
@@ -296,8 +301,7 @@ def main():
     # phecode_table = pd.read_csv(data_path / f'{trait}/phecode_table.txt', sep='\t')
     case_grid, control_grid = get_cases_and_controls(output_path / 'case_control_pairs_icd_count_5.txt') # TODO: avoid hardcoding the file name
 
-    phecode_fn = data_path / 'sd_phecode.feathter'
-    sd_phecode = pd.read_feather(phecode_fn) 
+    sd_phecode = pd.read_feather(data_paths['phecode_binary_feather_file'])
 
     # case_grid = list(set(cases.GRID))
     # control_grid = list(controls_clean.sample(n=len(case_grid)*30, random_state=2024).GRID)

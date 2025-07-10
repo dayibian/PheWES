@@ -15,6 +15,7 @@ import random
 import sys
 import time
 from pathlib import Path
+import yaml
 
 import pandas as pd
 from tqdm import tqdm
@@ -22,13 +23,14 @@ from tqdm import tqdm
 # Set random seed for reproducibility
 random.seed(2025)
 
+# Load data paths
+with open('../data/data_paths.yaml', 'r') as f:
+    data_paths = yaml.safe_load(f)
+
 # Define paths to input data files
-CASE_PATH = Path(
-    '/data100t1/home/wanying/BioVU/202505_hypophosphatasia/data/hpp_icd_code_counts_in_sd.case_only.csv')
-SD_DEMO_PATH = Path(
-    '/data100t1/share/synthetic-deriv/demographic-releases/2025-mar-19/sd_demographics.csv.gz')
-DEPTH_OF_RECORD_PATH = Path(
-    '/data100t1/home/wanying/BioVU/202505_hypophosphatasia/data/depth_of_record_in_sd.csv')
+CASE_PATH = Path(data_paths['case_path'])
+DEPTH_OF_RECORD_PATH = Path(data_paths['depth_of_record_path'])
+SD_DEMO_PATH = Path(data_paths['sd_demographics_file'])
 
 def setup_log(fn_log: str, mode: str = 'w') -> None:
     '''

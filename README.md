@@ -12,8 +12,8 @@
 ## Setup
 1. Create a virtual environment:
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Linux/Mac
+conda create -n PheWES python=3.11.9
+conda activate PheWES  # On Linux/Mac
 ```
 
 2. Install dependencies:
