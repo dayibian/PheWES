@@ -1,15 +1,19 @@
-# Data paths for some common files
+# config.yaml - Configuration for Snakemake pipeline
 
-# Phecode files for all SD samples
+# General pipeline configuration
+trait: als
+icd_count: 0
+results_dir: results
+data_dir: data
+output_prefix: output
+n_permute: 10000
+
+# Data file paths (merged from data_paths.yaml)
 phecode_file: /data100t1/share/synthetic-deriv/phecodes/all-sd-phecodes-mar-2025/all-sd-codes.csv.gz
 phecode_binary_file: /data100t1/share/synthetic-deriv/phecodes/all-sd-phecodes-mar-2025/sd_samples_phecode.binary.txt.gz
 phecode_binary_feather_file: /data100t1/share/synthetic-deriv/phecodes/all-sd-phecodes-mar-2025/sd_samples_phecode.binary.feather
 phecode_count_file: /data100t1/share/synthetic-deriv/phecodes/all-sd-phecodes-mar-2025/sd_samples_phecode.count.txt.gz
 phecode_map_file: /data100t1/share/synthetic-deriv/phecodes/ICD_Phecode_mapping.csv # Map between ICD codes and Phecodes and corresponding Phecode strings
-
-# SD demographics file
 sd_demographics_file: /data100t1/share/synthetic-deriv/demographic-releases/2025-mar-19/sd_demographics.csv.gz
-
-# Project specific files
 case_path: /data100t1/home/wanying/BioVU/202505_hypophosphatasia/data/hpp_icd_code_counts_in_sd.case_only.csv
-depth_of_record_path: /data100t1/home/wanying/BioVU/202505_hypophosphatasia/data/depth_of_record_in_sd.csv
+depth_of_record_path: /data100t1/home/wanying/BioVU/202505_hypophosphatasia/data/depth_of_record_in_sd.csv 

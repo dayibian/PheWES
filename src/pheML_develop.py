@@ -28,7 +28,7 @@ warnings.filterwarnings('ignore')
 logging.getLogger('matplotlib.font_manager').disabled = True
 
 # Load data paths
-with open('../data/data_paths.yaml', 'r') as f:
+with open('../config.yaml', 'r') as f:
     data_paths = yaml.safe_load(f)
 
 full_name = {
@@ -368,7 +368,7 @@ def get_cases_and_controls(
     df = pd.read_csv(pair_file, sep='\t')
     cases = df['case'].dropna().tolist()
     # Get only the first n_controls_per_case control columns
-    control_cols = [col for col in df.columns if col.startswith('Control')][:n_controls_per_case]
+    control_cols = [col for col in df.columns if col.startswith('Control')][:n_controls_per_case] # TODO: might not be smart to use those matched controls for training
     controls = pd.unique(df[control_cols].values.ravel('K'))
     controls = [c for c in controls if pd.notnull(c)]
     return cases, controls
@@ -426,3 +426,4 @@ def main() -> None:
 
 if __name__ == '__main__':
     main()
+    #TODO: Add explainability to the model

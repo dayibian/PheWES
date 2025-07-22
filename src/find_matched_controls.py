@@ -15,22 +15,18 @@ import random
 import sys
 import time
 from pathlib import Path
-import yaml
 
 import pandas as pd
 from tqdm import tqdm
+import yaml
+
+# Load config.yaml for default paths
+with open("../config.yaml") as f:
+    config = yaml.safe_load(f)
 
 # Set random seed for reproducibility
 random.seed(2025)
 
-# Load data paths
-with open('../data/data_paths.yaml', 'r') as f:
-    data_paths = yaml.safe_load(f)
-
-# Define paths to input data files
-CASE_PATH = Path(data_paths['case_path'])
-DEPTH_OF_RECORD_PATH = Path(data_paths['depth_of_record_path'])
-SD_DEMO_PATH = Path(data_paths['sd_demographics_file'])
 
 def setup_log(fn_log: str, mode: str = 'w') -> None:
     '''
@@ -52,9 +48,12 @@ def process_args() -> argparse.Namespace:
     Process arguments
     '''
     parser = argparse.ArgumentParser()
-    parser.add_argument('--icd_count', help='Number of ICD code needed to count as case', type=int, default=1)
+    parser.add_argument('--icd_count', help='Number of ICD code needed to count as case', type=int, default=0)
     parser.add_argument('--result_path', help='Path to save the results', type=str, default='../results')
     parser.add_argument('--result_filename', help='Name of the result file', type=str, default='case_control_pairs')
+    parser.add_argument('--case_path', help='Path to case data file', type=str, default=config['case_path'])
+    parser.add_argument('--sd_demographics_file', help='Path to SD demographics file', type=str, default=config['sd_demographics_file'])
+    parser.add_argument('--depth_of_record_path', help='Path to depth of record file', type=str, default=config['depth_of_record_path'])
 
     args = parser.parse_args()
 
@@ -77,8 +76,7 @@ def process_args() -> argparse.Namespace:
     return args
 
 
-def import_data(icd_count: int = 1, case_path: Path = CASE_PATH, sd_demo_path: Path = SD_DEMO_PATH,
-                depth_of_record_path: Path = DEPTH_OF_RECORD_PATH) -> tuple[pd.DataFrame, pd.DataFrame]:
+def import_data(icd_count: int = 1, case_path: Path = None, sd_demo_path: Path = None, depth_of_record_path: Path = None) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Import and preprocess case and control data for matching.
     
@@ -273,7 +271,7 @@ def main():
     result_fp = Path(args.result_path) / (args.result_filename + '.txt')
 
     logging.info('Importing data...\n')
-    cases_df, controls_df = import_data(args.icd_count)
+    cases_df, controls_df = import_data(args.icd_count, args.case_path, args.sd_demographics_file, args.depth_of_record_path)
 
     logging.info('Finding matches...\n')
     found_controls = set()  # Track used controls to ensure no reuse

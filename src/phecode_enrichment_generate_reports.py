@@ -8,14 +8,15 @@ from pathlib import Path
 import argparse
 import sys
 import numpy as np
-import yaml
 
 import warnings
 warnings.filterwarnings('ignore')
 
-# Load data paths
-with open('../data/data_paths.yaml', 'r') as f:
-    data_paths = yaml.safe_load(f)
+import yaml
+# Load config.yaml for default paths
+with open("config.yaml") as f:
+    config = yaml.safe_load(f)
+
 
 def setup_log(fn_log, mode='w'):
     '''
@@ -42,6 +43,7 @@ def process_args():
                         default='/data100t1/home/biand/Projects/Comorbidity_analysis/output/')
     parser.add_argument('--trait', help='Trait of interest', type=str, default='als')
     parser.add_argument('--input_prefix', help='The prefix for the input file.', type=str, default='output')
+    parser.add_argument('--phecode_map_file', type=str, default=config['phecode_map_file'], help='Path to the phecode map file')
     
     args = parser.parse_args()
 
@@ -77,7 +79,7 @@ def main():
     logging.info(f'The number of enriched phecode is: {results_sig.shape[0]} (out of {results.shape[0]})')
 
     logging.info('Reading phecode map...')
-    phecode_map = pd.read_csv(data_paths['phecode_map_file'], dtype={'Phecode':str})
+    phecode_map = pd.read_csv(args.phecode_map_file, dtype={'Phecode':str})
     phecode_map = phecode_map[['Phecode', 'PhecodeString']].drop_duplicates(ignore_index=True)
     phecode_map.Phecode = phecode_map.Phecode.apply(lambda x: x.strip())
     phecode_map.index = phecode_map.Phecode

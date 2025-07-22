@@ -20,12 +20,12 @@ import argparse
 import sys
 import logging
 import time
-import yaml
 from pathlib import Path
+import yaml
 
-# Load data paths
-with open('../data/data_paths.yaml', 'r') as f:
-    data_paths = yaml.safe_load(f)
+# Load config.yaml for default paths
+with open("../config.yaml") as f:
+    config = yaml.safe_load(f)
 
 def setup_log(fn_log, mode='w'):
     '''
@@ -52,14 +52,16 @@ def process_args():
                         default='./sample_data/control_list.txt')
     parser.add_argument('--output_path', type=str, default='./')
     parser.add_argument('--output_prefix', type=str, default='output')
-    parser.add_argument('--phecode_table', default='/data100t1/home/wanying/BioVU/202409_celiac_project/output/sd_samples_phecode.binary.txt.gz',
+    parser.add_argument('--phecode_table', type=str, default=config['phecode_binary_file'],
                         help='Binary counts of phecode for each sample. Must have column names, with the first column being sample ID')
-    parser.add_argument('--phecode_delimiter', default=None, choices=[',', 'tab', 'space', 'whitespace'],
+    parser.add_argument('--phecode_delimiter', default='tab', choices=[',', 'tab', 'space', 'whitespace'],
                         help='Delimiter of the phecode table file')
-    parser.add_argument('--control_delimiter', default=None, choices=[',', 'tab', 'space', 'whitespace'],
+    parser.add_argument('--control_delimiter', default='tab', choices=[',', 'tab', 'space', 'whitespace'],
                         help='Delimiter of the control file')
     parser.add_argument('--n_permute', help='Number of permutations', type=int,
-                        default=1000)
+                        default=10000)
+    parser.add_argument('--phecode_binary_feather_file', type=str, default=config['phecode_binary_feather_file'],
+                        help='Path to the feather file with binary phecode data')
     
     args = parser.parse_args()
     
@@ -163,7 +165,7 @@ def get_lst_controls(lst_case, dict_control, rng):
 def get_frequencies(lst_ids, df_phecode):
     '''
     Given a list of ids (lst_ids) and a phecode table,
-    return frequencies of phecodes in a data series
+    return count and frequencies of phecodes in a data series
     '''
     df_subset = df_phecode[df_phecode.loc[:, 'grid'].isin(lst_ids)]
     return df_subset.iloc[:, :-1].sum(), df_subset.iloc[:, :-1].sum()/len(df_subset) # Return counts and frequency, Skip the last column (ID column)
@@ -180,7 +182,7 @@ def main():
     lst_case = list(dict_control.keys()) # Update the case list, remove cases that have no matched controls
     
     logging.info('\n# Load binary phecode table')
-    df_phecode = pd.read_feather(data_paths['phecode_binary_feather_file'])
+    df_phecode = pd.read_feather(args.phecode_binary_feather_file)
     logging.info('# - %s sample x %s phecodes' % (df_phecode.shape[0], df_phecode.shape[1]-1))
 
     logging.info('\n# Calcualte frequency of each phecode in cases')
