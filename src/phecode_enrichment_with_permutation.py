@@ -168,17 +168,33 @@ def get_lst_controls(lst_case, dict_control, rng):
         lst_control.append(rng.choice(dict_control[case], 1)[0])
     return lst_control
 
-def get_frequencies(lst_ids, df_phecode_lazy):
+def get_frequencies(lst_ids, df_phecode_lazy, phecode_cols=None):
     '''
     Given a list of ids (lst_ids) and a phecode table (polars LazyFrame),
     return count and frequencies of phecodes in a pandas Series
-    '''
-    # Filter and collect only the necessary rows
-    df_subset = df_phecode_lazy.filter(pl.col('grid').is_in(lst_ids)).collect()
-    n_samples = len(df_subset)
     
-    # Calculate sum, excluding the 'grid' column
-    counts = df_subset.drop('grid').sum().to_pandas().iloc[0]  # Convert to pandas Series
+    Params:
+    - lst_ids: list of sample IDs to filter
+    - df_phecode_lazy: polars LazyFrame with phecode data
+    - phecode_cols: pre-computed list of phecode column names (excluding 'grid')
+                    to avoid repeated schema lookups
+    '''
+    # Get phecode columns once if not provided (caching optimization)
+    if phecode_cols is None:
+        phecode_cols = [col for col in df_phecode_lazy.collect_schema().names() if col != 'grid']
+    
+    n_samples = len(lst_ids)
+    
+    # Optimize: select only needed columns during filtering, avoiding drop operation
+    # Use sum directly in the lazy evaluation chain before collecting
+    counts_pl = (df_phecode_lazy
+                 .filter(pl.col('grid').is_in(lst_ids))
+                 .select(phecode_cols)
+                 .sum()
+                 .collect())
+    
+    # More efficient conversion: use squeeze() to convert single-row DataFrame to Series
+    counts = counts_pl.to_pandas().squeeze()
     frequencies = counts / n_samples
     
     return counts, frequencies  # Return counts and frequency as pandas Series
@@ -197,17 +213,19 @@ def main():
     logging.info('\n# Load binary phecode table (lazy loading with polars)')
     df_phecode = pl.scan_ipc(args.phecode_binary_feather_file)
     # Get schema info for logging (lazy - no data loaded yet)
-    n_cols = len(df_phecode.columns) - 1  # -1 for the grid column
+    schema_names = df_phecode.collect_schema().names()
+    phecode_cols = [col for col in schema_names if col != 'grid']
+    n_cols = len(phecode_cols)
     logging.info('# - Binary phecode table loaded (lazy). N phecodes: %s' % n_cols)
 
     logging.info('\n# Calcualte frequency of each phecode in cases')
-    df_case_count, _ = get_frequencies(lst_case, df_phecode)
+    df_case_count, _ = get_frequencies(lst_case, df_phecode, phecode_cols)
 
     logging.info('\n# Calcualte frequency of each phecode in controls with permutation')
     all_control_count = [] # Store counts of controls
     rng = np.random.default_rng(seed=2024)
     for i in range(args.n_permute):
-        lst_control_count, _ = get_frequencies(get_lst_controls(lst_case, dict_control, rng), df_phecode)
+        lst_control_count, _ = get_frequencies(get_lst_controls(lst_case, dict_control, rng), df_phecode, phecode_cols)
         all_control_count.append(lst_control_count)
         if i%10==0: print(f'\r - Permutation {i+1}   ', end='', flush=True)
     print(f'\r - Permutation {i+1}   ', end='\n')
