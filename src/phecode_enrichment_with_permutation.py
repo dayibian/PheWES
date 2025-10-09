@@ -14,6 +14,7 @@ python /data100t1/home/wanying/BioVU/202409_celiac_project/code/utils/phecode_en
 '''
 
 import pandas as pd
+import polars as pl
 import numpy as np
 import os
 import argparse
@@ -167,13 +168,20 @@ def get_lst_controls(lst_case, dict_control, rng):
         lst_control.append(rng.choice(dict_control[case], 1)[0])
     return lst_control
 
-def get_frequencies(lst_ids, df_phecode):
+def get_frequencies(lst_ids, df_phecode_lazy):
     '''
-    Given a list of ids (lst_ids) and a phecode table,
-    return count and frequencies of phecodes in a data series
+    Given a list of ids (lst_ids) and a phecode table (polars LazyFrame),
+    return count and frequencies of phecodes in a pandas Series
     '''
-    df_subset = df_phecode[df_phecode.loc[:, 'grid'].isin(lst_ids)]
-    return df_subset.iloc[:, 1:].sum(), df_subset.iloc[:, 1:].sum()/len(df_subset) # Return counts and frequency, Skip the first column (ID column)
+    # Filter and collect only the necessary rows
+    df_subset = df_phecode_lazy.filter(pl.col('grid').is_in(lst_ids)).collect()
+    n_samples = len(df_subset)
+    
+    # Calculate sum, excluding the 'grid' column
+    counts = df_subset.drop('grid').sum().to_pandas().iloc[0]  # Convert to pandas Series
+    frequencies = counts / n_samples
+    
+    return counts, frequencies  # Return counts and frequency as pandas Series
 
 def main():
     args = process_args()
@@ -186,9 +194,11 @@ def main():
     logging.info('# - Control file: %s' % len(dict_control))
     lst_case = list(dict_control.keys()) # Update the case list, remove cases that have no matched controls
     
-    logging.info('\n# Load binary phecode table')
-    df_phecode = pd.read_feather(args.phecode_binary_feather_file)
-    logging.info('# - %s sample x %s phecodes' % (df_phecode.shape[0], df_phecode.shape[1]-1))
+    logging.info('\n# Load binary phecode table (lazy loading with polars)')
+    df_phecode = pl.scan_ipc(args.phecode_binary_feather_file)
+    # Get schema info for logging (lazy - no data loaded yet)
+    n_cols = len(df_phecode.columns) - 1  # -1 for the grid column
+    logging.info('# - Binary phecode table loaded (lazy). N phecodes: %s' % n_cols)
 
     logging.info('\n# Calcualte frequency of each phecode in cases')
     df_case_count, _ = get_frequencies(lst_case, df_phecode)
