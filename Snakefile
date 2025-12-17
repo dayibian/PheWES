@@ -2,7 +2,7 @@
 
 # Raw data files required for this workflow (must be present before running):
 # - case list (case_path)
-# - SD demographics file (sd_demographics_file)
+# - demographics file (demographics_file)
 # - depth of record file (depth_of_record_path)
 
 configfile: "config.yaml"
@@ -11,7 +11,7 @@ import os
 
 CASE_PATH = config["case_path"]
 CONTROL_EXCLUSION_LIST = config["control_exclusion_list"]
-SD_DEMO_PATH = config["sd_demographics_file"]
+DEMO_PATH = config["demographics_file"]
 DEPTH_OF_RECORD_PATH = config["depth_of_record_path"]
 
 # Configurable parameters
@@ -38,7 +38,7 @@ rule all:
 rule find_matched_controls:
     input:
         case=CASE_PATH,
-        demographics=SD_DEMO_PATH,
+        demographics=DEMO_PATH,
         depth=DEPTH_OF_RECORD_PATH
     output:
         f"{RESULTS_DIR}/case_control_pairs_{OUTPUT_PREFIX}_train.txt"

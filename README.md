@@ -25,6 +25,9 @@ The pipeline requires the following data files. Paths should be configured in `c
   - A Feather format file containing a `grid` column and binary columns for each phecode (1 = present, 0 = absent).
 - **Control Exclusion List** (Optional):
   - A file containing GRIDs to exclude from control selection.
+- **ICD to Phecode Mapping** (`ICD_phecode_mapping.csv`):
+  - Columns: `ICD`, `Flag`, `ICDString`, `Phecode`, `PhecodeString`, `PhecodeCategory` (used for mapping raw diagnosis codes to phenotype groupings)
+
 
 ## Setup
 1. Create and activate the conda environment using the provided environment.yaml:

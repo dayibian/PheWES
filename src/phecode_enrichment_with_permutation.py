@@ -7,8 +7,6 @@ python ../src/phecode_enrichment_with_permutation.py \
 --control_fn ./sample_data/control_list.txt \
 --output_path ./ \
 --output_prefix output \
---phecode_table ./sample_data/phecode_table.binary.txt.gz \
---phecode_delimiter tab \
 --control_delimiter tab \
 --n_permute 1000 
 '''
@@ -58,10 +56,7 @@ def process_args():
                         default='./sample_data/control_list.txt')
     parser.add_argument('--output_path', type=str, default='./')
     parser.add_argument('--output_prefix', type=str, default='output')
-    parser.add_argument('--phecode_table', type=str, default=config['phecode_binary_file'],
-                        help='Binary counts of phecode for each sample. Must have column names, with the first column being sample ID')
-    parser.add_argument('--phecode_delimiter', default='tab', choices=[',', 'tab', 'space', 'whitespace'],
-                        help='Delimiter of the phecode table file')
+
     parser.add_argument('--control_delimiter', default='tab', choices=[',', 'tab', 'space', 'whitespace'],
                         help='Delimiter of the control file')
     parser.add_argument('--n_permute', help='Number of permutations', type=int,
@@ -91,16 +86,10 @@ def process_args():
         msg = f'# - {arg}: {getattr(args, arg)}'
         logging.info(msg)
 
+
+
     # Get delimiter
     dict_delimiter = {',':',', 'tab':'\t', 'space':' ', 'whitespace':'\s+'}
-    if not args.phecode_delimiter:
-        # Infer delimiter from phecode table suffix
-        if args.phecode_table.endswith('.csv'):
-            args.phecode_delimiter = ','
-        else:
-            args.phecode_delimiter = '\t'
-    else:
-        args.phecode_delimiter = dict_delimiter[args.phecode_delimiter]
 
     if not args.control_delimiter:
         if args.control_fn.endswith('.csv'):

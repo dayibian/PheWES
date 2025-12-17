@@ -334,6 +334,14 @@ def main() -> None:
 
     phecode_map = pd.read_csv(config['phecode_map_file'], dtype={'Phecode':str})
     phecode_features_ = get_phecode_features(output_path, trait, prefix, number_of_cases*0.8, phecode_map)
+    
+    if not phecode_features_:
+        logging.info("No enriched phecode found. Model training will be skipped.")
+        # Create a fake model file to satisfy Snakemake
+        with open(output_path / f'PheML_{model_type}_{prefix}.model', 'w') as f:
+            f.write("No enriched phecode found. Model training skipped.")
+        return
+
     data[['grid']+phecode_features_+['label']].to_csv(output_path / f'{prefix}_data_for_ML.csv', index=False)
     # print(phecode_features_)
 
