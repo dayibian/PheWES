@@ -20,14 +20,14 @@ The pipeline requires the following data files. Paths should be configured in `c
 - **Depth of Record File** (`depth_of_record.csv`):
   - Columns: `grid`, `depth_of_record` (integer, number of visits in unique days)
 - **Case File**:
-  - A CSV or text file containing at least a `grid` column defining the cases.
+  - A CSV or text file containing at least a `grid` column defining the cases. (optional: `icd_code_count` column for minimum ICD code count)
 - **Phecode Binary File** (`phecode_binary.feather`):
   - A Feather format file containing a `grid` column and binary columns for each phecode (1 = present, 0 = absent).
 - **Control Exclusion List** (Optional):
   - A file containing GRIDs to exclude from control selection.
 - **ICD to Phecode Mapping** (`ICD_phecode_mapping.csv`):
   - Columns: `ICD`, `Flag`, `ICDString`, `Phecode`, `PhecodeString`, `PhecodeCategory` (used for mapping raw diagnosis codes to phenotype groupings)
-
+> **Note:** The `grid` column in the files is used to identify the same patient in different files.
 
 ## Setup
 1. Create and activate the conda environment using the provided environment.yaml:
@@ -69,10 +69,15 @@ This project uses [Snakemake](https://snakemake.readthedocs.io/) to manage the a
    - `{trait}_{output_prefix}_enriched_phecode.csv`: Enriched phecodes
    - `PheML_{output_prefix}.model`: Trained model
 
-### Example
+## Machine Learning Models
+The pipeline currently supports the following machine learning models, which can be selected via the `model_type` parameter in `config.yaml`:
 
-To run the pipeline with the default configuration:
+- **CART** (`CART`): Decision Tree Classifier. A simple and interpretable baseline model.
+- **Random Forest** (`RF`): An ensemble of decision trees. Robust and generally high-performing.
+- **XGBoost** (`XG`): Gradient boosting framework. Efficient and often provides state-of-the-art results.
+- **Neural Network** (`NN` or `MLP`): Multi-layer Perceptron. Capable of capturing complex non-linear relationships.
 
+All models undergo hyperparameter tuning using `RandomizedSearchCV` with 5-fold stratified cross-validation. Additionally, the pipeline supports **SMOTEN** (`use_smoten`) for handling class imbalance, ensuring robust performance even with unbalanced datasets.
 
 ## Contributing
 [Add contribution guidelines here]

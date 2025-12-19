@@ -2,7 +2,7 @@
 
 # General pipeline configuration
 trait: test # Trait of interest
-icd_count: 0 # Number of ICD codes needed to classify as a case, if 0, all cases will be included
+icd_count: -1 # Number of ICD codes needed to classify as a case, if -1, all cases will be included
 results_dir: results/testing # Results directory
 data_dir: data # Data directory
 output_prefix: testing # Output prefix
@@ -46,7 +46,6 @@ excluded_codes: # List of ICD codes and Phecodes to exclude from the ML pipeline
 # Example data paths (for testing or demonstration purposes), uncomment the following lines to use the example data
 phecode_map_file: data/sample_data/ICD_Phecode_mapping.csv
 demographics_file: data/sample_data/demographics.csv
-# phecode_file: data/sample_data/phecode_data.csv.gz
 phecode_binary_feather_file: data/sample_data/phecode_binary.feather
 case_path: data/sample_data/cases.csv
 control_exclusion_list: data/sample_data/excluded_controls.txt

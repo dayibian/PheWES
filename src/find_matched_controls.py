@@ -84,7 +84,7 @@ def process_args() -> argparse.Namespace:
     return args
 
 
-def import_data(icd_count: int = 1, case_path: Path = None, demographics_file: Path = None, 
+def import_data(icd_count: int = -1, case_path: Path = None, demographics_file: Path = None, 
                 depth_of_record_path: Path = None, control_exclusion_list: list[str] = None) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Import and preprocess case and control data for matching.
