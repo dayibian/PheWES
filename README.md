@@ -79,6 +79,35 @@ The pipeline currently supports the following machine learning models, which can
 
 All models undergo hyperparameter tuning using `RandomizedSearchCV` with 5-fold stratified cross-validation. Additionally, the pipeline supports **SMOTEN** (`use_smoten`) for handling class imbalance, ensuring robust performance even with unbalanced datasets.
 
+## Model Interpretation
+To help users understand how the trained models make predictions, the pipeline supports **SHAP (SHapley Additive exPlanations)**. SHAP values provide a unified measure of feature importance, showing how much each feature contributes to the model's output for a given prediction.
+
+The pipeline automatically generates SHAP summary plots and waterfall plots to visualize these contributions. Below is an example of a SHAP waterfall plot, which breaks down the prediction for an individual sample:
+
+![SHAP Waterfall Plot Example](assets/waterfall_test.png)
+
+This visualization allows researchers to identify which phecodes or demographic features pushed the model's prediction towards a specific disease risk.
+
+### Generating Interpretations
+You can generate these plots programmatically using the `interpret_model` function:
+
+```python
+from src.plotting import interpret_model
+from pathlib import Path
+import pandas as pd
+
+# Example usage
+interpret_model(
+    model=trained_model,           # The trained ML model
+    data=test_data,                # DataFrame with patient data
+    grid='R12345678',              # The patient ID (grid) to interpret
+    phecode_map=phecode_mapping,   # Dictionary mapping phecodes to descriptions
+    output_path=Path('results'),   # Directory to save the plot
+    plot='waterfall',              # Plot type: 'waterfall' or 'heatmap'
+    model_type='tree'              # Model type (e.g., 'tree' for RF/XGBoost)
+)
+```
+
 ## Contributing
 [Add contribution guidelines here]
 
